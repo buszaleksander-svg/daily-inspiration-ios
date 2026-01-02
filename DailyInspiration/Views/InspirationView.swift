@@ -1,8 +1,14 @@
-//
-//  InspirationView.swift
-//  DailyInspiration
-//
-//  Created by Aleksander Busz Fabritius on 2025-12-27.
-//
+import SwiftUI
 
-import Foundation
+struct InspirationView: View {
+    var body: some View {
+        Text("Inspiration screen (placeholder)")
+            .font(.title)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+#Preview {
+    InspirationView()
+}
+
