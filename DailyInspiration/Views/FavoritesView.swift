@@ -12,15 +12,29 @@ struct FavoritesView: View {
     
     @State var favoriteQuotes: [String] = []
     
+    func deleteQuotes(at offsets: IndexSet) {
+        favoriteQuotes.remove(atOffsets: offsets)
+    }
+
+    
     var body: some View {
         VStack {
             Text("Favorite Quote")
                 .font(.largeTitle)
                 .padding()
             
-            List(favoriteQuotes, id: \.self) { quote in
-                Text(quote)
+            
+            if favoriteQuotes.isEmpty {
+                Text("No Favorites yet.")
+            } else {
+                List {
+                    ForEach(favoriteQuotes, id: \.self) { quote in
+                        Text(quote)
+                    }
+                    .onDelete(perform: deleteQuotes)
+                }
             }
+            
             Button("Favorite Quote") {
                 // to add a new quote in the list
                 favoriteQuotes.append("You are reading the favorite quote!")
