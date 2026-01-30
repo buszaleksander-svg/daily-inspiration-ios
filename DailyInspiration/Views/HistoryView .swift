@@ -1,6 +1,6 @@
 //
 //  HistoryView.swift
-//  DailyInspirationAppInspirationalQuotes.swift
+//  DailyInspirationApp.swift
 //
 //  Created by Mats Rune Bergman on 2026-01-30.
 //
