@@ -8,13 +8,13 @@
 /*
  This HistoryView displays an ordered list of the inspirational quotes that has been randomly presented by the InspirationView, provided that InspirationView contains the necessary code.
  
- The most recent inspirational quote is listed first.
+ The most recent inspirational quote is listed first. ScrollView with LazyVStack permits the list to grow.
  
  Persistence is achieved via @AppStorage in HistoryView and @State in InspirationView.
  
  To make the code more readable I have employed @ViewBuilder.
  
- For reference I have included the code for InspirationView that I have tested and verified that it works.
+ For reference I have included the code for InspirationView that I have tested and verified that it works with this implementation of @AppStorage. Please see the blockquote in the end of the file.
  
  // Mats
  
