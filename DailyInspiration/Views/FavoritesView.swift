@@ -10,41 +10,85 @@ import SwiftUI
 
 struct FavoritesView: View {
     
-    @State var favoriteQuotes: [String] = []
+    @AppStorage("favoriteQuoteIDs") private var favoriteIDsData: Data = Data()
     
-    func deleteQuotes(at offsets: IndexSet) {
-        favoriteQuotes.remove(atOffsets: offsets)
-    }
 
     
     var body: some View {
         VStack {
-            Text("Favorite Quote")
+            Text("Favorites")
                 .font(.largeTitle)
                 .padding()
             
             
-            if favoriteQuotes.isEmpty {
+            if favoriteIDs.isEmpty {
                 Text("No Favorites yet.")
             } else {
                 List {
-                    ForEach(favoriteQuotes, id: \.self) { quote in
-                        Text(quote)
+                    ForEach(favoriteIDs, id: \.self) { id in
+                        if let item = inspirationalQuotes[id] {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("“\(item.quote)”")
+                                Text("— \(item.author)")
+                            }
+                            .padding(.vertical, 4)
+                        } else {
+                            Text("Quote not found.")
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .onDelete(perform: deleteQuotes)
+                    .onDelete(perform: deleteFavorites)
                 }
             }
             
-            Button("Favorite Quote") {
-                // to add a new quote in the list
-                favoriteQuotes.append("You are reading the favorite quote!")
+            // DEBUG BUTTON – remove before final submission
+            Button("DEBUG: Add random favorite") {
+                addDummyFavorite()
             }
-            .padding()
+            .padding(.top, 12)
+
+            
+        }
+        .navigationTitle("Favorites")
+        .toolbar { EditButton ()
         }
     }
+
+
+// Read favorites from storage
+private var favoriteIDs: [QuoteID] {
+    guard !favoriteIDsData.isEmpty else {
+        return []
+    }
+    return (try? JSONDecoder().decode([QuoteID].self, from: favoriteIDsData)) ?? []
+    }
+
+// Save favorites to storage
+    private func saveFavoriteIDs(_ ids: [QuoteID]) {
+           favoriteIDsData = (try? JSONEncoder().encode(ids)) ?? Data()
+       }
+
+    private func deleteFavorites(at offsets: IndexSet) {
+        var ids = favoriteIDs
+        ids.remove(atOffsets: offsets)
+        saveFavoriteIDs(ids)
+    }
+    
+    // DEBUG ONLY – remove later
+    private func addDummyFavorite() {
+        guard let randomID = inspirationalQuotes.randomElement()?.key else {
+            return
+        }
+
+        var ids = favoriteIDs
+        ids.append(randomID)
+        saveFavoriteIDs(ids)
+    }
+
 }
 
-
 #Preview {
-    FavoritesView()
+    NavigationStack {
+        FavoritesView()
+    }
 }
