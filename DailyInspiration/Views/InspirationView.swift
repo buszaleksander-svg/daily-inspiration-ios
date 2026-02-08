@@ -50,6 +50,12 @@ struct InspirationView: View {
                                 endPoint: .trailing
                             )
                         )
+                        .scaleEffect(isAnimating ? 1.0 : 0.5)
+                        .rotation3DEffect(
+                            .degrees(isAnimating ? 0 : 180),
+                            axis: (x: 0, y: 1, z: 0)
+                        )
+                        .animation(.spring(response: 0.8, dampingFraction: 0.6), value: isAnimating)
                     
                     quoteSection
                 }
@@ -129,6 +135,9 @@ struct InspirationView: View {
                 if let random = inspirationalQuotes.randomElement() {
                     selectedID = random.key
                     persistSeenHistory(id: random.key)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isAnimating = true
+                    }
                 }
             }
         }
@@ -142,26 +151,40 @@ struct InspirationView: View {
                     .font(.system(size: 22, weight: .medium, design: .serif))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
+                    .id("quote-\(id)")
                 
                 Text("— \(item.author)")
                     .font(.system(size: 16, design: .serif))
                     .foregroundColor(.secondary)
+                    .id("author-\(id)")
             }
             .opacity(isAnimating ? 1 : 0)
-            .animation(.easeIn(duration: 0.6), value: isAnimating)
+            .scaleEffect(isAnimating ? 1.0 : 0.8)
+            .offset(y: isAnimating ? 0 : 30)
+            .blur(radius: isAnimating ? 0 : 5)
         } else {
             ProgressView()
         }
     }
     
     private func generateNewQuote() {
-        isAnimating = false
+        // DRAMATISK FADE OUT - 0.7 sekunder
+        withAnimation(.easeOut(duration: 0.7)) {
+            isAnimating = false
+        }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        // Vänta på komplett fade out
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
             if let random = inspirationalQuotes.randomElement() {
                 selectedID = random.key
                 persistSeenHistory(id: random.key)
-                isAnimating = true
+                
+                // DRAMATISK FADE IN - 1.2 sekunder
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    withAnimation(.easeIn(duration: 1.2)) {
+                        isAnimating = true
+                    }
+                }
                 
                 if showSavedFeedback {
                     showSavedFeedback = false
