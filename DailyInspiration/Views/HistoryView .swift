@@ -110,11 +110,15 @@ struct HistoryView: View {
                     Image(systemName: "star")
                 }
 
+                /*
+                // Deactivated link to InspirationView.
+        
                 NavigationLink {
                     InspirationView()
                 } label: {
                     Image(systemName: "sparkles")
                 }
+                 */
             }
         }
         .confirmationDialog(
