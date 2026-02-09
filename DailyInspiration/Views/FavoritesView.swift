@@ -1,16 +1,13 @@
 import SwiftUI
+import UserNotifications
 
 struct FavoritesView: View {
 
-    // MUST match InspirationView
     @AppStorage("favoriteQuoteIDs") private var favoriteIDsData: Data = Data()
-
     @State private var favoriteIDs: [QuoteID] = []
 
     var body: some View {
         ZStack {
-
-            // MARK: - Background (same as InspirationView)
             LinearGradient(
                 colors: [
                     Color(red: 245/255, green: 242/255, blue: 250/255),
@@ -23,12 +20,9 @@ struct FavoritesView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 24) {
-
                 Spacer(minLength: 10)
 
-                // MARK: - Favorites Card
                 VStack(spacing: 16) {
-
                     Image(systemName: "star.fill")
                         .font(.system(size: 34))
                         .foregroundStyle(
@@ -41,6 +35,21 @@ struct FavoritesView: View {
 
                     Text("Favorites")
                         .font(.system(size: 22, weight: .semibold, design: .serif))
+
+                    
+                    Button("Enable Daily Inspiration") {
+                        enableDailyNotification()
+                    }
+                    .font(.system(size: 16, weight: .semibold, design: .serif))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        LinearGradient(colors: [Color.purple, Color.blue],
+                                       startPoint: .leading,
+                                       endPoint: .trailing)
+                    )
+                    .foregroundColor(.white)
+                    .cornerRadius(14)
 
                     favoritesContent
                 }
@@ -60,13 +69,8 @@ struct FavoritesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
         .onAppear { loadFavoriteIDs() }
-        // Optional: ensures it refreshes if favorites change while this view is alive
-        .onChange(of: favoriteIDsData) { _ in
-            loadFavoriteIDs()
-        }
+        .onChange(of: favoriteIDsData) { _ in loadFavoriteIDs() }
     }
-
-    // MARK: - Content inside the card
 
     @ViewBuilder
     private var favoritesContent: some View {
@@ -84,14 +88,12 @@ struct FavoritesView: View {
             }
             .padding(.top, 6)
         } else {
-            // A “clean” list look that fits inside the card
             List {
                 ForEach(favoriteIDs, id: \.self) { id in
                     if let item = inspirationalQuotes[id] {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("“\(item.quote)”")
                                 .font(.system(size: 16, weight: .medium, design: .serif))
-                                .foregroundColor(.primary)
 
                             Text("— \(item.author)")
                                 .font(.system(size: 14, design: .serif))
@@ -110,13 +112,11 @@ struct FavoritesView: View {
                 .onDelete(perform: deleteFavorites)
             }
             .listStyle(.plain)
-            .scrollContentBackground(.hidden) // makes the list blend into the card
-            .frame(height: 360)               // prevents the card from growing infinitely
+            .scrollContentBackground(.hidden)
+            .frame(height: 360)
             .padding(.top, 4)
         }
     }
-
-    // MARK: - Storage (same approach as InspirationView)
 
     private func loadFavoriteIDs() {
         guard !favoriteIDsData.isEmpty else {
@@ -130,11 +130,42 @@ struct FavoritesView: View {
         favoriteIDsData = (try? JSONEncoder().encode(ids)) ?? Data()
     }
 
-    // MARK: - Actions
-
     private func deleteFavorites(at offsets: IndexSet) {
         favoriteIDs.remove(atOffsets: offsets)
         saveFavoriteIDs(favoriteIDs)
+    }
+
+    
+    
+    private func enableDailyNotification() {
+        let center = UNUserNotificationCenter.current()
+
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+
+            guard let random = inspirationalQuotes.randomElement() else { return }
+            let item = random.value
+
+            let content = UNMutableNotificationContent()
+            content.title = "Daily Inspiration"
+            content.body = "“\(item.quote)” — \(item.author)"
+            content.sound = .default
+
+            var date = DateComponents()
+            date.hour = 9
+            date.minute = 0
+
+            let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
+
+            let request = UNNotificationRequest(
+                identifier: "daily_inspiration",
+                content: content,
+                trigger: trigger
+            )
+
+            center.removePendingNotificationRequests(withIdentifiers: ["daily_inspiration"])
+            center.add(request)
+        }
     }
 }
 
