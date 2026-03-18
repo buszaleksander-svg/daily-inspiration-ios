@@ -2,15 +2,11 @@ import SwiftUI
 
 struct FavoritesView: View {
 
-    // MUST match InspirationView
     @AppStorage("favoriteQuoteIDs") private var favoriteIDsData: Data = Data()
-
     @State private var favoriteIDs: [QuoteID] = []
 
     var body: some View {
         ZStack {
-
-            // MARK: - Background (same as InspirationView)
             LinearGradient(
                 colors: [
                     Color(red: 245/255, green: 242/255, blue: 250/255),
@@ -23,12 +19,9 @@ struct FavoritesView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 24) {
-
                 Spacer(minLength: 10)
 
-                // MARK: - Favorites Card
                 VStack(spacing: 16) {
-
                     Image(systemName: "star.fill")
                         .font(.system(size: 34))
                         .foregroundStyle(
@@ -60,13 +53,10 @@ struct FavoritesView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { EditButton() }
         .onAppear { loadFavoriteIDs() }
-        // Optional: ensures it refreshes if favorites change while this view is alive
         .onChange(of: favoriteIDsData) { _ in
             loadFavoriteIDs()
         }
     }
-
-    // MARK: - Content inside the card
 
     @ViewBuilder
     private var favoritesContent: some View {
@@ -84,39 +74,62 @@ struct FavoritesView: View {
             }
             .padding(.top, 6)
         } else {
-            // A “clean” list look that fits inside the card
-            List {
-                ForEach(favoriteIDs, id: \.self) { id in
-                    if let item = inspirationalQuotes[id] {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("“\(item.quote)”")
-                                .font(.system(size: 16, weight: .medium, design: .serif))
-                                .foregroundColor(.primary)
-
-                            Text("— \(item.author)")
-                                .font(.system(size: 14, design: .serif))
-                                .foregroundColor(.secondary)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(favoriteIDs, id: \.self) { id in
+                        if let item = quote(for: id) {
+                            favoriteRow(for: item)
+                        } else {
+                            missingQuoteRow()
                         }
-                        .padding(.vertical, 8)
-                        .listRowBackground(Color.white.opacity(0.0))
-                    } else {
-                        Text("Quote not found.")
-                            .font(.system(size: 14, design: .serif))
-                            .foregroundColor(.secondary)
-                            .padding(.vertical, 8)
-                            .listRowBackground(Color.white.opacity(0.0))
+
+                        Divider()
+                            .padding(.horizontal, 2)
                     }
                 }
-                .onDelete(perform: deleteFavorites)
+                .padding(.horizontal, 4)
             }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden) // makes the list blend into the card
-            .frame(height: 360)               // prevents the card from growing infinitely
+            .frame(height: 360)
             .padding(.top, 4)
         }
     }
 
-    // MARK: - Storage (same approach as InspirationView)
+    private func favoriteRow(for item: Quote) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("“\(item.text)”")
+                .font(.system(size: 16, weight: .medium, design: .serif))
+                .foregroundColor(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text("— \(item.author)")
+                .font(.system(size: 14, design: .serif))
+                .foregroundColor(.secondary)
+
+            Text(item.category.rawValue)
+                .font(.system(size: 12, weight: .semibold, design: .serif))
+                .foregroundColor(.purple)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+        .swipeActions(edge: .trailing) {
+            if let index = favoriteIDs.firstIndex(of: item.id) {
+                Button(role: .destructive) {
+                    deleteFavorite(at: index)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    private func missingQuoteRow() -> some View {
+        Text("Quote not found.")
+            .font(.system(size: 14, design: .serif))
+            .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 14)
+    }
 
     private func loadFavoriteIDs() {
         guard !favoriteIDsData.isEmpty else {
@@ -130,10 +143,9 @@ struct FavoritesView: View {
         favoriteIDsData = (try? JSONEncoder().encode(ids)) ?? Data()
     }
 
-    // MARK: - Actions
-
-    private func deleteFavorites(at offsets: IndexSet) {
-        favoriteIDs.remove(atOffsets: offsets)
+    private func deleteFavorite(at index: Int) {
+        guard favoriteIDs.indices.contains(index) else { return }
+        favoriteIDs.remove(at: index)
         saveFavoriteIDs(favoriteIDs)
     }
 }

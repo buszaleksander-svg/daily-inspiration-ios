@@ -1,34 +1,19 @@
 //
 //  HistoryView.swift
-//  DailyInspirationApp.swift
+//  DailyInspiration
 //
-//  Created by Mats Rune Bergman on 2026-01-30.
+//  Updated to work with the new Quote model
+//  and support clearing history.
 //
-
-/*
- This HistoryView displays an ordered list of the inspirational quotes that has been randomly presented by the InspirationView, provided that InspirationView contains the necessary code.
- 
- The most recent inspirational quote is listed first. ScrollView with LazyVStack permits the list to grow.
- 
- Persistence is achieved via @AppStorage in HistoryView and @State in InspirationView.
- 
- To make the code more readable I have employed @ViewBuilder.
-  
- // Mats
- 
- */
-
 
 import SwiftUI
 
 struct HistoryView: View {
-    // Ordered history persisted by InspirationView (JSON-encoded [QuoteID])
     @AppStorage("seenQuoteHistory") private var seenHistoryData: Data = Data()
 
     var body: some View {
         ZStack {
             
-            // MARK: - Background (consistent with other views)
             LinearGradient(
                 colors: [
                     Color(red: 245/255, green: 242/255, blue: 250/255),
@@ -44,7 +29,6 @@ struct HistoryView: View {
                 
                 Spacer(minLength: 10)
                 
-                // MARK: - History Card
                 VStack(spacing: 16) {
                     
                     Image(systemName: "clock")
@@ -59,6 +43,18 @@ struct HistoryView: View {
                     
                     Text("History")
                         .font(.system(size: 22, weight: .semibold, design: .serif))
+                    
+                    if !seenHistoryIDs.isEmpty {
+                        Button(action: clearHistory) {
+                            Text("Clear History")
+                                .font(.system(size: 14, weight: .semibold, design: .serif))
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Color.red.opacity(0.08))
+                                .cornerRadius(12)
+                        }
+                    }
                     
                     historyContent
                 }
@@ -93,7 +89,6 @@ struct HistoryView: View {
         }
     }
 
-    // Decode ordered IDs (most recent first).
     private var seenHistoryIDs: [QuoteID] {
         guard !seenHistoryData.isEmpty else { return [] }
         do {
@@ -103,11 +98,14 @@ struct HistoryView: View {
         }
     }
 
-    // MARK: - Content inside the card
+    private func clearHistory() {
+        seenHistoryData = Data()
+    }
     
     @ViewBuilder
     private var historyContent: some View {
         let ids = seenHistoryIDs
+        
         if ids.isEmpty {
             VStack(spacing: 10) {
                 Text("No previously seen inspirations yet.")
@@ -122,33 +120,44 @@ struct HistoryView: View {
             }
             .padding(.top, 6)
         } else {
-            // A "clean" list look that fits inside the card
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(ids, id: \.self) { id in
-                        if let item = inspirationalQuotes[id] {
+                        if let item = quote(for: id) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("\"\(item.quote)\"")
+                                Text("\"\(item.text)\"")
                                     .font(.system(size: 16, weight: .medium, design: .serif))
                                     .foregroundColor(.primary)
                                 
                                 Text("— \(item.author)")
                                     .font(.system(size: 14, design: .serif))
                                     .foregroundColor(.secondary)
+                                
+                                Text(item.category.rawValue)
+                                    .font(.system(size: 12, weight: .semibold, design: .serif))
+                                    .foregroundColor(.purple)
                             }
                             .padding(.vertical, 8)
                             .frame(maxWidth: .infinity, alignment: .leading)
+                        } else {
+                            Text("Quote not found.")
+                                .font(.system(size: 14, design: .serif))
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
                 .padding(.horizontal, 4)
             }
-            .frame(height: 360) // prevents the card from growing infinitely
+            .frame(height: 360)
             .padding(.top, 4)
         }
     }
 }
 
 #Preview {
-    NavigationStack { HistoryView() }
+    NavigationStack {
+        HistoryView()
+    }
 }

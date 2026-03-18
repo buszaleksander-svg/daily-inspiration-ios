@@ -2,7 +2,7 @@
 //  InspirationView.swift
 //  DailyInspiration
 //
-//  Created by Carlo on 2026-02-02. Pushed to Git 2026-02-07
+//  Updated to support quote categories
 //
 
 import Foundation
@@ -10,12 +10,21 @@ import SwiftUI
 
 struct InspirationView: View {
     
-    @State private var selectedID: QuoteID?
+    @State private var selectedQuote: Quote?
+    @State private var selectedCategory: QuoteCategory? = nil
     @State private var isAnimating = false
     @State private var showSavedFeedback = false
     
     @AppStorage("favoriteQuoteIDs") private var favoriteIDsData: Data = Data()
     @AppStorage("seenQuoteHistory") private var seenHistoryData: Data = Data()
+    
+    private var filteredQuotes: [Quote] {
+        if let selectedCategory {
+            return inspirationalQuotes.filter { $0.category == selectedCategory }
+        } else {
+            return inspirationalQuotes
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -32,9 +41,32 @@ struct InspirationView: View {
             )
             .ignoresSafeArea()
             
-            VStack(spacing: 40) {
+            VStack(spacing: 24) {
                 
                 Spacer()
+                
+                // MARK: - Category Picker
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Category")
+                        .font(.system(size: 14, weight: .semibold, design: .serif))
+                        .foregroundColor(.secondary)
+                    
+                    Picker("Category", selection: $selectedCategory) {
+                        Text("All").tag(nil as QuoteCategory?)
+                        
+                        ForEach(QuoteCategory.allCases) { category in
+                            Text(category.rawValue).tag(category as QuoteCategory?)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.white.opacity(0.9))
+                    .cornerRadius(14)
+                    .shadow(color: .black.opacity(0.06), radius: 5, x: 0, y: 2)
+                }
+                .padding(.horizontal, 30)
                 
                 // MARK: - Quote Card
                 VStack(spacing: 20) {
@@ -101,7 +133,7 @@ struct InspirationView: View {
                         .cornerRadius(15)
                         .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
                     }
-                    .disabled(selectedID == nil)
+                    .disabled(selectedQuote == nil)
                 }
                 .padding(.horizontal, 30)
                 .padding(.bottom, 40)
@@ -125,53 +157,82 @@ struct InspirationView: View {
             }
         }
         .onAppear {
-            if selectedID == nil {
-                if let random = inspirationalQuotes.randomElement() {
-                    selectedID = random.key
-                    persistSeenHistory(id: random.key)
-                }
+            if selectedQuote == nil {
+                generateInitialQuote()
             }
+        }
+        .onChange(of: selectedCategory) { _ in
+            generateInitialQuote()
         }
     }
     
     @ViewBuilder
     private var quoteSection: some View {
-        if let id = selectedID, let item = inspirationalQuotes[id] {
+        if let quote = selectedQuote {
             VStack(spacing: 12) {
-                Text("\"\(item.quote)\"")
+                Text("\"\(quote.text)\"")
                     .font(.system(size: 22, weight: .medium, design: .serif))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 30)
                 
-                Text("— \(item.author)")
+                Text("— \(quote.author)")
                     .font(.system(size: 16, design: .serif))
                     .foregroundColor(.secondary)
+                
+                Text(quote.category.rawValue)
+                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    .foregroundColor(.purple)
+                    .padding(.top, 4)
             }
             .opacity(isAnimating ? 1 : 0)
             .animation(.easeIn(duration: 0.6), value: isAnimating)
         } else {
-            ProgressView()
+            VStack(spacing: 12) {
+                Text("No quotes available in this category.")
+                    .font(.system(size: 18, weight: .medium, design: .serif))
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 30)
+                
+                Text("Choose another category or select All.")
+                    .font(.system(size: 14, design: .serif))
+                    .foregroundColor(.secondary)
+            }
         }
+    }
+    
+    private func generateInitialQuote() {
+        guard let random = filteredQuotes.randomElement() else {
+            selectedQuote = nil
+            return
+        }
+        
+        selectedQuote = random
+        persistSeenHistory(id: random.id)
+        isAnimating = true
     }
     
     private func generateNewQuote() {
         isAnimating = false
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            if let random = inspirationalQuotes.randomElement() {
-                selectedID = random.key
-                persistSeenHistory(id: random.key)
-                isAnimating = true
-                
-                if showSavedFeedback {
-                    showSavedFeedback = false
-                }
+            guard let random = filteredQuotes.randomElement() else {
+                selectedQuote = nil
+                return
+            }
+            
+            selectedQuote = random
+            persistSeenHistory(id: random.id)
+            isAnimating = true
+            
+            if showSavedFeedback {
+                showSavedFeedback = false
             }
         }
     }
     
     private func saveToFavorites() {
-        guard let id = selectedID else { return }
+        guard let id = selectedQuote?.id else { return }
         
         var favorites = favoriteIDs
         
